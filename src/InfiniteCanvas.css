@@ -1,0 +1,470 @@
+.infinite-canvas-container {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+  background: #f5f5f5;
+  touch-action: none;
+  user-select: none;
+}
+
+.infinite-canvas {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform-origin: center;
+  transition: none;
+  will-change: transform;
+}
+
+/* Grille de fond */
+.grid-background {
+  position: absolute;
+  width: 10000px;
+  height: 10000px;
+  top: -5000px;
+  left: -5000px;
+  background-image: 
+    linear-gradient(rgba(200, 200, 200, 0.2) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200, 200, 200, 0.2) 1px, transparent 1px),
+    linear-gradient(rgba(200, 200, 200, 0.4) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(200, 200, 200, 0.4) 2px, transparent 2px);
+  background-size: 50px 50px, 50px 50px, 250px 250px, 250px 250px;
+  background-position: -1px -1px, -1px -1px, -1px -1px, -1px -1px;
+  pointer-events: none;
+}
+
+/* Marqueur central */
+.center-marker {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  pointer-events: none;
+}
+
+.center-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #2196F3 0%, #2196F3 40%, transparent 40%);
+  border: 2px solid #2196F3;
+}
+
+.center-label {
+  position: absolute;
+  top: 25px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: #2196F3;
+  font-weight: bold;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Contrôles */
+.controls {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 1000;
+  display: flex;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Contrôles de dessin */
+.drawing-controls {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.drawing-controls button {
+  padding: 8px 16px;
+  border: 2px solid transparent;
+  background: #fff;
+  color: #333;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 20px;
+  transition: all 0.2s;
+}
+
+.drawing-controls button:hover {
+  background: #f5f5f5;
+  transform: translateY(-1px);
+}
+
+.drawing-controls button.active {
+  background: #2196F3;
+  color: white;
+  border-color: #1976D2;
+}
+
+/* Canvas de dessin */
+.drawing-canvas {
+  touch-action: none;
+  cursor: crosshair !important;
+}
+
+/* Indicateur de dessin */
+.drawing-indicator {
+  margin-top: 5px;
+  padding: 4px 8px;
+  background: #2196F3;
+  color: white;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: bold;
+  animation: pulse 2s infinite;
+}
+
+.controls button {
+  padding: 8px 16px;
+  border: none;
+  background: #2196F3;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.controls button:hover {
+  background: #1976D2;
+  transform: translateY(-1px);
+}
+
+.controls button:active {
+  transform: translateY(0);
+}
+
+.zoom-level {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  font-weight: bold;
+  color: #333;
+  background: rgba(33, 150, 243, 0.1);
+  border-radius: 4px;
+}
+
+/* Informations du canvas */
+.canvas-info {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 10px 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  font-size: 12px;
+  color: #666;
+  font-family: monospace;
+}
+
+/* Éléments du canvas */
+.canvas-text {
+  pointer-events: none;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+.canvas-image {
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .controls {
+    flex-direction: column;
+    top: 10px;
+    left: 10px;
+    gap: 5px;
+  }
+  
+  .controls button {
+    padding: 10px;
+    font-size: 12px;
+  }
+  
+  .canvas-info {
+    font-size: 11px;
+    bottom: 10px;
+    left: 10px;
+  }
+}
+
+/* Amélioration pour les appareils tactiles */
+@media (hover: none) and (pointer: coarse) {
+  .controls button {
+    padding: 12px 20px;
+    font-size: 16px;
+  }
+  
+  .infinite-canvas {
+    cursor: move;
+  }
+}
+
+/* Animation pour feedback visuel */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.canvas-image:hover {
+  animation: pulse 2s infinite;
+}
+
+/* Optimisations de performance */
+.infinite-canvas * {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Axes de référence */
+.axis {
+  position: absolute;
+  background: rgba(33, 150, 243, 0.3);
+  pointer-events: none;
+}
+
+.axis-x {
+  width: 10000px;
+  height: 2px;
+  top: -1px;
+  left: -5000px;
+}
+
+.axis-y {
+  width: 2px;
+  height: 10000px;
+  left: -1px;
+  top: -5000px;
+}
+
+/* Instructions */
+.instructions {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 15px 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  max-width: 280px;
+  backdrop-filter: blur(10px);
+}
+
+.instructions h3 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  color: #2196F3;
+  font-weight: 600;
+}
+
+.instructions ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.instructions li {
+  margin: 8px 0;
+  font-size: 13px;
+  color: #555;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.instructions strong {
+  color: #333;
+}
+
+/* Indicateur de geste */
+.gesture-hint {
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  color: #2196F3;
+  font-weight: 500;
+  animation: pulse 2s infinite;
+}
+
+/* Amélioration des boutons de contrôle */
+.controls button span {
+  font-size: 18px;
+  display: block;
+}
+
+/* Style amélioré pour les images */
+.canvas-image {
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.canvas-image:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* Mobile responsive amélioré */
+@media (max-width: 768px) {
+  .instructions {
+    top: auto;
+    bottom: 60px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+    font-size: 12px;
+  }
+  
+  .instructions h3 {
+    font-size: 14px;
+  }
+  
+  .instructions li {
+    font-size: 11px;
+  }
+  
+  .controls {
+    flex-direction: row;
+    gap: 8px;
+  }
+  
+  .controls button {
+    padding: 10px;
+  }
+  
+  .controls button span {
+    font-size: 16px;
+  }
+}
+
+/* Animation pour le feedback visuel */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.canvas-text,
+.canvas-image {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Amélioration du marqueur central */
+.center-marker {
+  z-index: 100;
+}
+
+.center-dot {
+  box-shadow: 0 0 20px rgba(33, 150, 243, 0.5);
+}
+
+/* Couche de dessin SVG */
+.drawing-layer {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+  overflow: visible;
+}
+
+.drawing-layer g {
+  transform-origin: 0 0;
+}
+
+/* Compteur de traits */
+.drawing-count {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  background: rgba(33, 150, 243, 0.1);
+  color: #2196F3;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  margin-left: 10px;
+}
+
+/* Boutons désactivés */
+.drawing-controls button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.drawing-controls button:disabled:hover {
+  transform: none;
+  background: #fff;
+}
+
+/* Amélioration du curseur selon le mode */
+.infinite-canvas-container[data-drawing="true"] {
+  cursor: crosshair !important;
+}
+
+.infinite-canvas-container[data-drawing="false"] {
+  cursor: grab;
+}
+
+.infinite-canvas-container[data-drawing="false"][data-dragging="true"] {
+  cursor: grabbing;
+}
+
+/* Animation pour les nouveaux traits */
+@keyframes drawStroke {
+  from {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+  }
+  to {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 0;
+  }
+}
+
+.drawing-layer path {
+  animation: drawStroke 0.5s ease-in-out;
+}
+
+/* Smooth transitions */
+.infinite-canvas {
+  transition: transform 0.016s linear;
+}

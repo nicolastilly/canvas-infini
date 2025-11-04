@@ -6,7 +6,7 @@ export const useGesturesWithDrawing = (containerRef, options = {}) => {
     minScale = 0.1,
     maxScale = 5,
     scaleSensitivity = 0.01,
-    smoothing = true,
+    smoothing = false, // Désactivé par défaut pour plus de réactivité
     enableInertia = true,
     inertiaFriction = 0.95
   } = options;
@@ -20,6 +20,8 @@ export const useGesturesWithDrawing = (containerRef, options = {}) => {
   const [drawingPaths, setDrawingPaths] = useState([]);
   const [currentPath, setCurrentPath] = useState([]);
   const [isDrawingEnabled, setIsDrawingEnabled] = useState(true);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isPinching, setIsPinching] = useState(false);
 
   const gestureState = useRef({
     isDragging: false,
@@ -34,41 +36,17 @@ export const useGesturesWithDrawing = (containerRef, options = {}) => {
     animationFrame: null,
     // Pour le dessin
     currentDrawingPath: [],
-    lastDrawPoint: null,
-    currentTransform: { x: 0, y: 0, scale: 1 }
+    lastDrawPoint: null
   });
 
-  // Convertir les coordonnées écran en coordonnées du monde
-  const screenToWorld = useCallback((screenX, screenY) => {
-    if (!containerRef.current) return { x: 0, y: 0 };
-    
-    const rect = containerRef.current.getBoundingClientRect();
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    
-    const relativeX = screenX - rect.left - centerX;
-    const relativeY = screenY - rect.top - centerY;
-    
-    const worldX = (relativeX - transform.x) / transform.scale;
-    const worldY = (relativeY - transform.y) / transform.scale;
-    
-    return { x: worldX, y: worldY };
-  }, [transform, containerRef]);
-
   // Obtenir la position du monde au centre de l'écran
-  // Utilise currentTransform du state pour avoir les valeurs les plus récentes
-  const getCenterWorldPosition = useCallback(() => {
-    if (!containerRef.current) return { x: 0, y: 0 };
-    
-    const state = gestureState.current;
-    const currentT = state.currentTransform;
-    
+  const getCenterWorldPosition = useCallback((tx, ty, scale) => {
     // Le centre de l'écran en coordonnées monde
-    const worldX = -currentT.x / currentT.scale;
-    const worldY = -currentT.y / currentT.scale;
+    const worldX = -tx / scale;
+    const worldY = -ty / scale;
     
     return { x: worldX, y: worldY };
-  }, [containerRef]);
+  }, []);
 
   // Calcul de la distance entre deux points tactiles
   const getTouchDistance = useCallback((touches) => {
@@ -120,9 +98,6 @@ export const useGesturesWithDrawing = (containerRef, options = {}) => {
   const handleGestureStart = useCallback((e) => {
     const state = gestureState.current;
     
-    // Mettre à jour currentTransform avec la valeur actuelle
-    state.currentTransform = { ...transform };
-    
     // Annuler l'inertie en cours
     if (state.animationFrame) {
       cancelAnimationFrame(state.animationFrame);
@@ -134,6 +109,7 @@ export const useGesturesWithDrawing = (containerRef, options = {}) => {
     if (e.touches && e.touches.length === 2) {
       // Pinch-to-zoom
       state.isPinching = true;
+      setIsPinching(true);
       state.initialPinchDistance = getTouchDistance(e.touches);
       state.initialScale = transform.scale;
     } else {
@@ -142,6 +118,7 @@ export const useGesturesWithDrawing = (containerRef, options = {}) => {
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
       
       state.isDragging = true;
+      setIsDragging(true);
       state.dragStart = { x: clientX, y: clientY };
       state.lastTransform = { x: transform.x, y: transform.y };
       state.lastPosition = { x: clientX, y: clientY };
@@ -149,8 +126,8 @@ export const useGesturesWithDrawing = (containerRef, options = {}) => {
       
       // Commencer un nouveau segment de dessin si activé
       if (isDrawingEnabled) {
-        const centerPoint = getCenterWorldPosition();
-        console.log('Starting new drawing path at:', centerPoint);
+        const centerPoint = getCenterWorldPosition(transform.x, transform.y, transform.scale);
+        console.log('🎨 START drawing at:', centerPoint);
         state.currentDrawingPath = [centerPoint];
         state.lastDrawPoint = centerPoint;
         setCurrentPath([centerPoint]);
@@ -179,8 +156,8 @@ export const useGesturesWithDrawing = (containerRef, options = {}) => {
       const adjustedY = centerY - (centerY - transform.y) * scaleRatio;
       
       setTransform({
-        x: smoothing ? transform.x * 0.8 + adjustedX * 0.2 : adjustedX,
-        y: smoothing ? transform.y * 0.8 + adjustedY * 0.2 : adjustedY,
+        x: adjustedX,
+        y: adjustedY,
         scale: newScale
       });
     } else if (state.isDragging && !state.isPinching) {
@@ -209,9 +186,9 @@ export const useGesturesWithDrawing = (containerRef, options = {}) => {
         state.lastMoveTime = currentTime;
       }
       
-      // Ajouter au dessin si activé et qu'on est en train de dragger
+      // Ajouter au dessin si activé
       if (isDrawingEnabled && state.isDragging) {
-        const centerPoint = getCenterWorldPosition();
+        const centerPoint = getCenterWorldPosition(newX, newY, transform.scale);
         
         if (state.lastDrawPoint) {
           const dx = centerPoint.x - state.lastDrawPoint.x;
@@ -223,7 +200,7 @@ export const useGesturesWithDrawing = (containerRef, options = {}) => {
           if (distance >= minDistance) {
             state.currentDrawingPath.push(centerPoint);
             state.lastDrawPoint = centerPoint;
-            console.log('Point added, total:', state.currentDrawingPath.length, 'center:', centerPoint);
+            console.log('📍 Point added, total:', state.currentDrawingPath.length, 'at:', centerPoint);
             
             // Mettre à jour le chemin en cours pour le rendu en temps réel
             setCurrentPath([...state.currentDrawingPath]);
@@ -231,41 +208,44 @@ export const useGesturesWithDrawing = (containerRef, options = {}) => {
         }
       }
       
-      setTransform(prev => {
-        const newTransform = {
-          ...prev,
-          x: smoothing ? prev.x * 0.8 + newX * 0.2 : newX,
-          y: smoothing ? prev.y * 0.8 + newY * 0.2 : newY
-        };
-        
-        // Stocker le nouveau transform dans le state pour l'utiliser immédiatement
-        state.currentTransform = newTransform;
-        
-        return newTransform;
+      // Mettre à jour la transformation
+      setTransform({
+        x: newX,
+        y: newY,
+        scale: transform.scale
       });
     }
-  }, [transform, minScale, maxScale, containerRef, getTouchDistance, getTouchCenter, smoothing, enableInertia, isDrawingEnabled]);
+  }, [transform, minScale, maxScale, containerRef, getTouchDistance, getTouchCenter, enableInertia, isDrawingEnabled, getCenterWorldPosition]);
 
   // Gestionnaire pour la fin du geste
   const handleGestureEnd = useCallback(() => {
     const state = gestureState.current;
     
-    console.log('handleGestureEnd - isDrawingEnabled:', isDrawingEnabled, 'path length:', state.currentDrawingPath.length);
+    console.log('=== handleGestureEnd ===');
+    console.log('isDrawingEnabled:', isDrawingEnabled);
+    console.log('state.isDragging:', state.isDragging);
+    console.log('currentDrawingPath length:', state.currentDrawingPath.length);
+    console.log('currentDrawingPath:', state.currentDrawingPath);
     
     // Sauvegarder le chemin de dessin si nécessaire (au moins 2 points pour tracer une ligne)
     if (isDrawingEnabled && state.currentDrawingPath.length > 1) {
-      console.log('Saving path with', state.currentDrawingPath.length, 'points');
+      console.log('✅ SAVING PATH with', state.currentDrawingPath.length, 'points');
+      const newPath = {
+        points: [...state.currentDrawingPath],
+        strokeWidth: 3,
+        strokeColor: 'rgba(0, 0, 0, 0.8)'
+      };
+      console.log('New path object:', newPath);
+      
       setDrawingPaths(prev => {
-        const newPaths = [...prev, {
-          points: [...state.currentDrawingPath],
-          strokeWidth: 3,
-          strokeColor: 'rgba(0, 0, 0, 0.8)'
-        }];
-        console.log('Total paths now:', newPaths.length);
-        return newPaths;
+        const updated = [...prev, newPath];
+        console.log('Updated drawingPaths (now has', updated.length, 'paths)');
+        return updated;
       });
     } else {
-      console.log('NOT saving path - reason:', !isDrawingEnabled ? 'drawing disabled' : 'not enough points');
+      console.log('❌ NOT SAVING - Reason:', 
+        !isDrawingEnabled ? 'drawing disabled' : 
+        state.currentDrawingPath.length <= 1 ? `only ${state.currentDrawingPath.length} point(s)` : 'unknown');
     }
     
     // Réinitialiser le chemin en cours
@@ -279,6 +259,8 @@ export const useGesturesWithDrawing = (containerRef, options = {}) => {
     
     state.isDragging = false;
     state.isPinching = false;
+    setIsDragging(false);
+    setIsPinching(false);
   }, [enableInertia, applyInertia, isDrawingEnabled]);
 
   // Gestionnaire pour la molette de souris
@@ -336,6 +318,9 @@ export const useGesturesWithDrawing = (containerRef, options = {}) => {
 
   const clearDrawing = useCallback(() => {
     setDrawingPaths([]);
+    setCurrentPath([]);
+    gestureState.current.currentDrawingPath = [];
+    gestureState.current.lastDrawPoint = null;
   }, []);
 
   const undoLastStroke = useCallback(() => {
@@ -388,8 +373,8 @@ export const useGesturesWithDrawing = (containerRef, options = {}) => {
     centerView,
     zoomIn,
     zoomOut,
-    isDragging: gestureState.current.isDragging,
-    isPinching: gestureState.current.isPinching,
+    isDragging,
+    isPinching,
     // Drawing
     drawingPaths,
     currentPath,

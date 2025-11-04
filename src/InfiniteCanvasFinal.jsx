@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import useGesturesWithDrawing from './useGesturesWithDrawing';
 import './InfiniteCanvas.css';
 
@@ -26,10 +26,20 @@ const InfiniteCanvasFinal = () => {
   } = useGesturesWithDrawing(containerRef, {
     minScale: 0.1,
     maxScale: 5,
-    smoothing: true,
-    enableInertia: true,
+    smoothing: false,
+    enableInertia: false,
     scaleSensitivity: 0.01
   });
+
+  // Debug: afficher les paths
+  useEffect(() => {
+    console.log('🔄 drawingPaths updated:', drawingPaths.length, 'paths');
+    console.log('Paths:', drawingPaths);
+  }, [drawingPaths]);
+
+  useEffect(() => {
+    console.log('🔄 currentPath updated:', currentPath.length, 'points');
+  }, [currentPath]);
 
   // Contenu du canvas
   const [canvasItems] = useState([
@@ -112,12 +122,16 @@ const InfiniteCanvasFinal = () => {
       }
     }
 
+    // Déterminer la couleur et l'épaisseur
+    const strokeColor = (path.strokeColor) || 'rgba(0, 0, 0, 0.8)';
+    const strokeWidth = (path.strokeWidth) || 3;
+
     return (
       <path
         key={isTemporary ? 'current-path' : `path-${index}`}
         d={d}
-        stroke={path.strokeColor || 'rgba(0, 0, 0, 0.8)'}
-        strokeWidth={(path.strokeWidth || 3) / transform.scale}
+        stroke={strokeColor}
+        strokeWidth={strokeWidth / transform.scale}
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
